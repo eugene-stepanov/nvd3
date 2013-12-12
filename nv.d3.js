@@ -3076,6 +3076,7 @@ nv.models.cumulativeLineChart = function() {
   chart.dispatch = dispatch;
   chart.lines = lines;
   chart.legend = legend;
+  chart.controls = controls;
   chart.xAxis = xAxis;
   chart.yAxis = yAxis;
   chart.interactiveLayer = interactiveLayer;
@@ -8364,6 +8365,7 @@ nv.models.multiBarChart = function() {
   chart.dispatch = dispatch;
   chart.multibar = multibar;
   chart.legend = legend;
+  chart.controls = controls;
   chart.xAxis = xAxis;
   chart.yAxis = yAxis;
 
@@ -9298,6 +9300,7 @@ nv.models.multiBarHorizontalChart = function() {
   chart.dispatch = dispatch;
   chart.multibar = multibar;
   chart.legend = legend;
+  chart.controls = controls;
   chart.xAxis = xAxis;
   chart.yAxis = yAxis;
 
