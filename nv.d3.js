@@ -10718,7 +10718,28 @@ nv.models.pieChart = function() {
   // Private Variables
   //------------------------------------------------------------
 
-  var showTooltip = function(e, offsetElement) {
+  var internetExplorerBefore11 = function() {
+    //taken from https://github.com/kmewhort/pointer_events_polyfill/blob/master/pointer_events_polyfill.js. Thanks for it.
+    if(navigator.appName == 'Microsoft Internet Explorer') {
+      var agent = navigator.userAgent;
+      if (agent.match(/MSIE ([0-9]{1,}[\.0-9]{0,})/) != null) {
+        var version = parseFloat( RegExp.$1 );
+        if (version < 11)
+          return true;
+      }
+    }
+    return false;
+  }
+
+  var pre11InternetExplorer = internetExplorerBefore11();
+
+  var showTooltip = function (e, offsetElement) {
+    var pieElementUnderCursor;
+    if (pre11InternetExplorer) {
+      //saving the reference to the pie, since we will need it later.
+      pieElementUnderCursor = document.elementFromPoint(d3.event.pageX, d3.event.pageY);
+    }
+
     var tooltipLabel = pie.description()(e.point) || pie.x()(e.point)
     var left = e.pos[0] + ( (offsetElement && offsetElement.scrollLeft) || 0 ),
         top = e.pos[1] + ( (offsetElement && offsetElement.scrollTop) || 0),
@@ -10726,10 +10747,41 @@ nv.models.pieChart = function() {
         content = tooltip(tooltipLabel, y, e, chart);
 
     nv.tooltip.show([left, top], content, e.value < 0 ? 'n' : 's', null, offsetElement);
+
+    if (pre11InternetExplorer) {
+      d3.selectAll(".nvtooltip").on("mousemove.iehack", function () { tooltipMouseEventHandler(pieElementUnderCursor); });
+      d3.selectAll(".nvtooltip").on("mouseout.iehack", function () { tooltipMouseEventHandler(pieElementUnderCursor); });
+    }
   };
 
-  //============================================================
+  var tooltipMouseEventHandler = function (pieElement) {
+    var tooltip = d3.select(d3.event.currentTarget);
+    var originalStyle = tooltip.style('display');
+    //hiding tooltip to be able to get the element underneath
+    tooltip.style('display', 'none');
+    //getting the element underneath
+    var elementUnderneath = document.elementFromPoint(d3.event.pageX, d3.event.pageY);
+    if (elementUnderneath !== pieElement) {
+      //we are already out of the pie, removing tooltips
+      dispatch.tooltipHide();
+      //remove pie hover
+      d3.select(findParentWithCSSClass(pieElement, "nv-slice")).classed('hover', false);
+    }
+    else {
+      //still in the tooltip and inside the pie. Restoring display value
+      tooltip.style('display', originalStyle);
+    }
+  };
 
+  var findParentWithCSSClass = function (node, searchedClassName) {
+    var currentNode = node;
+    while (currentNode != null && (!currentNode.className || !d3.select(currentNode).classed(searchedClassName))) {
+      currentNode = currentNode.parentNode;
+    }
+    return currentNode;
+  }
+
+  //============================================================
 
   function chart(selection) {
     selection.each(function(data) {
@@ -10880,12 +10932,30 @@ nv.models.pieChart = function() {
   //------------------------------------------------------------
 
   pie.dispatch.on('elementMouseover.tooltip', function (e) {
+    if (pre11InternetExplorer) {
+      //if coming back from the tooltip, no new tooltip is needed, since we already have one.
+      if (document.getElementsByClassName('nvtooltip').length > 0) {
+        return;
+      }
+    }
     e.pos = [e.pos[0] + margin.left, e.pos[1] + margin.top];
     dispatch.tooltipShow(e);
   });
 
   pie.dispatch.on('elementMouseout.tooltip', function (e) {
-    dispatch.tooltipHide(e);
+    var hideTooltip = true;
+    if (pre11InternetExplorer) {
+      var elementUnderCursor = document.elementFromPoint(d3.event.pageX, d3.event.pageY);
+      //if the mouse is right now inside the tooltip, then we just let it go
+      if (findParentWithCSSClass(elementUnderCursor, "nvtooltip")) {
+        hideTooltip = false;
+        //restore hover, which is removed by the pie model
+        d3.select(findParentWithCSSClass(d3.event.currentTarget, "nv-slice")).classed('hover', true);
+      }
+    }
+    if (hideTooltip) {
+      dispatch.tooltipHide(e);
+    }
   });
 
   dispatch.on('tooltipHide', function () {
