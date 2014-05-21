@@ -206,8 +206,8 @@ window.nv.tooltip.* also has various helper methods.
                 //If the parent container is an overflow <div> with scrollbars, subtract the scroll offsets.
                 //You need to also add any offset between the <svg> element and its containing <div>
                 //Finally, add any offset of the containing <div> on the whole page.
-                left += chartContainer.offsetLeft + svgOffset.left - 2*chartContainer.scrollLeft;
-                top += chartContainer.offsetTop + svgOffset.top - 2*chartContainer.scrollTop;
+                left = nv.tooltip.findTotalOffsetLeft(chartContainer, left) + svgOffset.left - 2 * chartContainer.scrollLeft;
+                top = nv.tooltip.findTotalOffsetTop(chartContainer, top) + svgOffset.top - 2 * chartContainer.scrollTop;
             }
 
             if (snapDistance && snapDistance > 0) {
@@ -365,6 +365,16 @@ window.nv.tooltip.* also has various helper methods.
                     if( !isNaN( Elem.offsetTop ) ) {
                         offsetTop += (Elem.offsetTop);
                     }
+                    if (!isNaN(Elem.scrollTop))
+                        offsetTop -= (Elem.scrollTop);
+                    var obj = Elem.offsetParent;
+                    var obj2 = Elem.parentNode;
+                    while (obj != null && obj2 != null && obj2 != obj) {
+                        if ( !isNaN( obj2.scrollTop ) ) {
+                            offsetTop -= obj2.scrollTop;
+                        }
+                        obj2 = obj2.parentNode;
+                    }
                 } while( Elem = Elem.offsetParent );
                 return offsetTop;
   };
@@ -377,6 +387,17 @@ window.nv.tooltip.* also has various helper methods.
                 do {
                     if( !isNaN( Elem.offsetLeft ) ) {
                         offsetLeft += (Elem.offsetLeft);
+                    }
+                    if (!isNaN(Elem.scrollLeft)) {
+                        offsetLeft -= (Elem.scrollLeft);
+                    }
+                    var obj = Elem.offsetParent;
+                    var obj2 = Elem.parentNode;
+                    while (obj != null && obj2 != null && obj2 != obj) {
+                        if ( !isNaN( obj2.scrollLeft ) ) {
+                            offsetLeft -= obj2.scrollLeft;
+                        }
+                        obj2 = obj2.parentNode;
                     }
                 } while( Elem = Elem.offsetParent );
                 return offsetLeft;
@@ -415,8 +436,12 @@ window.nv.tooltip.* also has various helper methods.
               case 'e':
                 left = pos[0] - width - dist;
                 top = pos[1] - (height / 2);
+                if (left < 0) left = 0;
+                if (top < 0) top = 0;
                 var tLeft = tooltipLeft(container);
                 var tTop = tooltipTop(container);
+                if (tLeft < 0) tLeft = 0;
+                if (tTop < 0) tTop = 0;
                 if (tLeft < scrollLeft) left = pos[0] + dist > scrollLeft ? pos[0] + dist : scrollLeft - tLeft + left;
                 if (tTop < scrollTop) top = scrollTop - tTop + top;
                 if (tTop + height > scrollTop + windowHeight) top = scrollTop + windowHeight - tTop + top - height;
@@ -424,8 +449,12 @@ window.nv.tooltip.* also has various helper methods.
               case 'w':
                 left = pos[0] + dist;
                 top = pos[1] - (height / 2);
+                if (left < 0) left = 0;
+                if (top < 0) top = 0;
                 var tLeft = tooltipLeft(container);
                 var tTop = tooltipTop(container);
+                if (tLeft < 0) tLeft = 0;
+                if (tTop < 0) tTop = 0;
                 if (tLeft + width > windowWidth) left = pos[0] - width - dist;
                 if (tTop < scrollTop) top = scrollTop + 5;
                 if (tTop + height > scrollTop + windowHeight) top = scrollTop + windowHeight - tTop + top - height;
@@ -433,8 +462,12 @@ window.nv.tooltip.* also has various helper methods.
               case 'n':
                 left = pos[0] - (width / 2) - 5;
                 top = pos[1] + dist;
+                if (left < 0) left = 0;
+                if (top < 0) top = 0;
                 var tLeft = tooltipLeft(container);
                 var tTop = tooltipTop(container);
+                if (tLeft < 0) tLeft = 0;
+                if (tTop < 0) tTop = 0;
                 if (tLeft < scrollLeft) left = scrollLeft + 5;
                 if (tLeft + width > windowWidth) left = left - width/2 + 5;
                 if (tTop + height > scrollTop + windowHeight) top = scrollTop + windowHeight - tTop + top - height;
@@ -442,8 +475,12 @@ window.nv.tooltip.* also has various helper methods.
               case 's':
                 left = pos[0] - (width / 2);
                 top = pos[1] - height - dist;
+                if (left < 0) left = 0;
+                if (top < 0) top = 0;
                 var tLeft = tooltipLeft(container);
                 var tTop = tooltipTop(container);
+                if (tLeft < 0) tLeft = 0;
+                if (tTop < 0) tTop = 0;
                 if (tLeft < scrollLeft) left = scrollLeft + 5;
                 if (tLeft + width > windowWidth) left = left - width/2 + 5;
                 if (scrollTop > tTop) top = scrollTop;
@@ -451,8 +488,8 @@ window.nv.tooltip.* also has various helper methods.
               case 'none':
                 left = pos[0];
                 top = pos[1] - dist;
-                var tLeft = tooltipLeft(container);
-                var tTop = tooltipTop(container);
+                if (left < 0) left = 0;
+                if (top < 0) top = 0;
                 break;
             }
 
