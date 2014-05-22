@@ -21,7 +21,8 @@ nv.models.pieChart = function() {
     , state = {}
     , defaultState = null
     , noData = "No Data Available."
-    , dispatch = d3.dispatch('tooltipShow', 'tooltipHide', 'stateChange', 'changeState')
+    , duration = 250
+    , dispatch = d3.dispatch('tooltipShow', 'tooltipHide', 'stateChange', 'changeState','renderEnd')
     ;
 
   //============================================================
@@ -30,7 +31,6 @@ nv.models.pieChart = function() {
   //============================================================
   // Private Variables
   //------------------------------------------------------------
-
   var internetExplorerBefore11 = function() {
     //taken from https://github.com/kmewhort/pointer_events_polyfill/blob/master/pointer_events_polyfill.js. Thanks for it.
     if(navigator.appName == 'Microsoft Internet Explorer') {
@@ -94,9 +94,14 @@ nv.models.pieChart = function() {
     return currentNode;
   }
 
+  var renderWatch = nv.utils.renderWatch(dispatch);
   //============================================================
 
+
   function chart(selection) {
+    renderWatch.reset();
+    renderWatch.models(pie);
+
     selection.each(function(data) {
       var container = d3.select(this),
           that = this;
@@ -237,6 +242,7 @@ nv.models.pieChart = function() {
 
     });
 
+    renderWatch.renderEnd('pieChart immediate');
     return chart;
   }
 
@@ -352,6 +358,14 @@ nv.models.pieChart = function() {
   chart.noData = function(_) {
     if (!arguments.length) return noData;
     noData = _;
+    return chart;
+  };
+
+  chart.duration = function(_) {
+    if (!arguments.length) return duration;
+    duration = _;
+    renderWatch.reset(duration);
+    pie.duration(duration);
     return chart;
   };
 

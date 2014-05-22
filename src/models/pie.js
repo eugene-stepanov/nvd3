@@ -24,13 +24,15 @@ nv.models.pie = function() {
     , startAngle = false
     , endAngle = false
     , donutRatio = 0.5
-    , dispatch = d3.dispatch('chartClick', 'elementClick', 'elementDblClick', 'elementMouseover', 'elementMouseout')
+    , duration = 250
+    , dispatch = d3.dispatch('chartClick', 'elementClick', 'elementDblClick', 'elementMouseover', 'elementMouseout', 'renderEnd')
     ;
 
   //============================================================
-
+  var renderWatch = nv.utils.renderWatch(dispatch);
 
   function chart(selection) {
+    renderWatch.reset();
     selection.each(function(data) {
       var availableWidth = width - margin.left - margin.right,
           availableHeight = height - margin.top - margin.bottom,
@@ -199,7 +201,7 @@ nv.models.pie = function() {
 
               return Math.floor(coordinates[0]/avgWidth) * avgWidth + ',' + Math.floor(coordinates[1]/avgHeight) * avgHeight;
           };
-          pieLabels.transition()
+          pieLabels.watchTransition(renderWatch,'pie labels')
                 .attr('transform', function(d) {
                   if (labelSunbeamLayout) {
                       d.outerRadius = arcRadius + 10; // Set Outer Coordinate
@@ -221,13 +223,11 @@ nv.models.pie = function() {
                       Adjust the label's y-position to remove the overlap.
                       */
                       var center = labelsArc.centroid(d);
-                      if(d.value){
-                        var hashKey = createHashKey(center);
-                        if (labelLocationHash[hashKey]) {
-                          center[1] -= avgHeight;
-                        }
-                        labelLocationHash[createHashKey(center)] = true;
+                      var hashKey = createHashKey(center);
+                      if (labelLocationHash[hashKey]) {
+                        center[1] -= avgHeight;
                       }
+                      labelLocationHash[createHashKey(center)] = true;
                       return 'translate(' + center + ')'
                     }
                 });
@@ -272,6 +272,7 @@ nv.models.pie = function() {
 
     });
 
+    renderWatch.renderEnd('pie immediate');
     return chart;
   }
 
@@ -409,6 +410,13 @@ nv.models.pie = function() {
   chart.labelThreshold = function(_) {
     if (!arguments.length) return labelThreshold;
     labelThreshold = _;
+    return chart;
+  };
+
+  chart.duration = function(_) {
+    if (!arguments.length) return duration;
+    duration = _;
+    renderWatch.reset(duration);
     return chart;
   };
   //============================================================

@@ -20,8 +20,11 @@ nv.models.axis = function() {
     , isOrdinal = false
     , ticks = null
     , axisLabelDistance = 12 //The larger this number is, the closer the axis label is to the axis.
+    , duration = 250
+    , dispatch = d3.dispatch('renderEnd')
+    , axisRendered = false
+    , maxMinRendered = false
     ;
-
   axis
     .scale(scale)
     .orient('bottom')
@@ -35,15 +38,16 @@ nv.models.axis = function() {
   // Private Variables
   //------------------------------------------------------------
 
-  var scale0;
+  var scale0
+    , renderWatch = nv.utils.renderWatch(dispatch, duration)
+    ;
 
   //============================================================
 
-
   function chart(selection) {
+    renderWatch.reset();
     selection.each(function(data) {
       var container = d3.select(this);
-
 
       //------------------------------------------------------------
       // Setup containers and skeleton of chart
@@ -63,9 +67,7 @@ nv.models.axis = function() {
 
 
       //TODO: consider calculating width/height based on whether or not label is added, for reference in charts using this component
-
-
-      g.transition().call(axis);
+      g.watchTransition(renderWatch, 'axis').call(axis);
 
       scale0 = scale0 || axis.scale();
 
@@ -102,7 +104,7 @@ nv.models.axis = function() {
                   var v = fmt(d);
                   return ('' + v).match('NaN') ? '' : v;
                 });
-            axisMaxMin.transition()
+            axisMaxMin.watchTransition(renderWatch, 'min-max top')
                 .attr('transform', function(d,i) {
                   return 'translate(' + scale.range()[i] + ',0)'
                 });
@@ -152,10 +154,8 @@ nv.models.axis = function() {
                   var v = fmt(d);
                   return ('' + v).match('NaN') ? '' : v;
                 });
-            axisMaxMin.transition()
+            axisMaxMin.watchTransition(renderWatch, 'min-max bottom')
                 .attr('transform', function(d,i) {
-                  //return 'translate(' + scale.range()[i] + ',0)'
-                  //return 'translate(' + scale(d) + ',0)'
                   return 'translate(' + (scale(d) + (isOrdinal ? scale.rangeBand() / 2 : 0)) + ',0)'
                 });
           }
@@ -190,7 +190,7 @@ nv.models.axis = function() {
                   var v = fmt(d);
                   return ('' + v).match('NaN') ? '' : v;
                 });
-            axisMaxMin.transition()
+            axisMaxMin.watchTransition(renderWatch, 'min-max right')
                 .attr('transform', function(d,i) {
                   return 'translate(0,' + scale.range()[i] + ')'
                 })
@@ -232,7 +232,7 @@ nv.models.axis = function() {
                   var v = fmt(d);
                   return ('' + v).match('NaN') ? '' : v;
                 });
-            axisMaxMin.transition()
+            axisMaxMin.watchTransition(renderWatch, 'min-max right')
                 .attr('transform', function(d,i) {
                   return 'translate(0,' + scale.range()[i] + ')'
                 })
@@ -296,14 +296,15 @@ nv.models.axis = function() {
       //highlight zero line ... Maybe should not be an option and should just be in CSS?
       if (highlightZero)
         g.selectAll('.tick')
-          .filter(function(d) { return !parseFloat(Math.round(d.__data__*100000)/1000000) && (d.__data__ !== undefined) }) //this is because sometimes the 0 tick is a very small fraction, TODO: think of cleaner technique
+          .filter(function(d) { return !parseFloat(Math.round(this.__data__*100000)/1000000) && (this.__data__ !== undefined) }) //this is because sometimes the 0 tick is a very small fraction, TODO: think of cleaner technique
             .classed('zero', true);
 
       //store old scales for use in transitions on update
       scale0 = scale.copy();
 
     });
-
+    
+    renderWatch.renderEnd('axis immediate');
     return chart;
   }
 
@@ -314,6 +315,7 @@ nv.models.axis = function() {
 
   // expose chart's sub-components
   chart.axis = axis;
+  chart.dispatch = dispatch;
 
   d3.rebind(chart, axis, 'orient', 'tickValues', 'tickSubdivide', 'tickSize', 'tickPadding', 'tickFormat');
   d3.rebind(chart, scale, 'domain', 'range', 'rangeBand', 'rangeBands'); //these are also accessible by chart.scale(), but added common ones directly for ease of use
@@ -397,6 +399,14 @@ nv.models.axis = function() {
     axisLabelDistance = _;
     return chart;
   };
+
+  chart.duration = function(_) {
+    if (!arguments.length) return duration;
+    duration = _;
+    renderWatch.reset(duration);
+    return chart;
+  };
+
 
   //============================================================
 
